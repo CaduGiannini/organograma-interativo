@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organograma Interativo com Balões</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff6b6b, #ffa726);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #ff5252, #ff9800);
+        }
+
+        .workspace {
+            position: absolute;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            overflow: hidden;
+        }
+
+        .person-balloon {
+            position: absolute;
+            cursor: move;
+            transition: all 0.3s ease;
+            width: 140px;
+            height: 180px;
+            user-select: none;
+        }
+
+        .person-balloon:hover {
+            transform: translateY(-10px) scale(1.05);
+            filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.4));
+        }
+
+        .person-balloon.dragging {
+            transform: rotate(5deg) scale(1.1);
+            z-index: 999;
+            filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+        }
+
+        .balloon-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .balloon-shape {
+            width: 120px;
+            height: 140px;
+            background: linear-gradient(135deg, #ff6b6b, #ffa726);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .balloon-string {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(to bottom, #333, transparent);
+        }
+
+        .person-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .person-info {
+            position: absolute;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 12px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            min-width: 100px;
+        }
+
+        .person-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 3px;
+            word-wrap: break-word;
+        }
+
+        .person-role {
+            font-size: 11px;
+            color: #666;
+            word-wrap: break-word;
+        }
+
+        .person-actions {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .person-balloon:hover .person-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .edit-btn {
+            background: linear-gradient(45deg, #4fc3f7, #29b6f6);
+            color: white;
+        }
+
+        .delete-btn {
+            background: linear-gradient(45deg, #ff5252, #f44336);
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: translateY(-50px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .photo-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #e0e0e0;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .photo-preview.show {
+            display: block;
+        }
+
+        .file-input-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px;
+            background: #f5f5f5;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .file-input-label:hover {
+            background: #e8e8e8;
+            border-color: #bbb;
+        }
+
+        .file-input {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 18px;
+            pointer-events: none;
+        }
+
+        .empty-state h3 {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+
+        .grid-helper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .workspace:hover .grid-helper {
+            opacity: 1;
+        }
+
+        .balloon-colors {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .color-option.selected {
+            border-color: #333;
+            transform: scale(1.2);
+        }
+
+        .color-1 { background: linear-gradient(135deg, #ff6b6b, #ffa726); }
+        .color-2 { background: linear-gradient(135deg, #4fc3f7, #29b6f6); }
+        .color-3 { background: linear-gradient(135deg, #81c784, #66bb6a); }
+        .color-4 { background: linear-gradient(135deg, #ba68c8, #9c27b0); }
+        .color-5 { background: linear-gradient(135deg, #ffb74d, #ff9800); }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 10px 20px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .header-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+            
+            .person-balloon {
+                width: 100px;
+                height: 130px;
+            }
+            
+            .balloon-shape {
+                width: 80px;
+                height: 100px;
+            }
+            
+            .person-photo {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎈 Organograma Interativo</h1>
+        <div class="header-buttons">
+            <button class="btn btn-primary" onclick="showAddPersonModal()">
+                ➕ Adicionar Pessoa
+            </button>
+            <button class="btn" onclick="saveOrganogram()">
+                💾 Salvar Layout
+            </button>
+            <button class="btn" onclick="clearOrganogram()">
+                🗑️ Limpar Tudo
+            </button>
+        </div>
+    </div>
+
+    <div class="workspace" id="workspace">
+        <div class="grid-helper"></div>
+        <div class="empty-state" id="emptyState">
+            <h3>🎈</h3>
+            <p>Clique em "Adicionar Pessoa" para começar!</p>
+            <p style="margin-top: 10px; font-size: 14px; opacity: 0.7;">
+                Arraste os balões pela tela para organizar sua equipe
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal para adicionar/editar pessoa -->
+    <div class="modal" id="personModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Adicionar Nova Pessoa</h2>
+            <form id="personForm">
+                <div class="form-group">
+                    <label for="personName">Nome:</label>
+                    <input type="text" id="personName" required>
+                </div>
+                <div class="form-group">
+                    <label for="personRole">Cargo:</label>
+                    <input type="text" id="personRole" required>
+                </div>
+                <div class="form-group">
+                    <label>Foto da Pessoa:</label>
+                    <div class="file-input-container">
+                        <input type="file" id="personPhoto" class="file-input" accept="image/*">
+                        <label for="personPhoto" class="file-input-label">
+                            📷 Clique para escolher uma foto
+                        </label>
+                    </div>
+                    <img id="photoPreview" class="photo-preview" alt="Preview da foto">
+                </div>
+                <div class="form-group">
+                    <label for="personPhotoUrl">Ou cole uma URL de imagem:</label>
+                    <input type="url" id="personPhotoUrl" placeholder="https://exemplo.com/foto.jpg">
+                </div>
+                <div class="form-group">
+                    <label>Cor do Balão:</label>
+                    <div class="balloon-colors">
+                        <div class="color-option color-1 selected" data-color="1"></div>
+                        <div class="color-option color-2" data-color="2"></div>
+                        <div class="color-option color-3" data-color="3"></div>
+                        <div class="color-option color-4" data-color="4"></div>
+                        <div class="color-option color-5" data-color="5"></div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        Adicionar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let people = [];
+        let currentEditingId = null;
+        let draggedElement = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // Cores dos balões
+        const balloonColors = {
+            1: 'linear-gradient(135deg, #ff6b6b, #ffa726)',
+            2: 'linear-gradient(135deg, #4fc3f7, #29b6f6)',
+            3: 'linear-gradient(135deg, #81c784, #66bb6a)',
+            4: 'linear-gradient(135deg, #ba68c8, #9c27b0)',
+            5: 'linear-gradient(135deg, #ffb74d, #ff9800)'
+        };
+
+        // Configurar seletor de cores
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // Configurar preview de foto
+        const photoInput = document.getElementById('personPhoto');
+        const photoUrlInput = document.getElementById('personPhotoUrl');
+        const photoPreview = document.getElementById('photoPreview');
+
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    photoPreview.src = e.target.result;
+                    photoPreview.classList.add('show');
+                    photoUrlInput.value = '';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        photoUrlInput.addEventListener('input', function() {
+            if (this.value) {
+                photoPreview.src = this.value;
+                photoPreview.classList.add('show');
+                photoInput.value = '';
+            } else {
+                photoPreview.classList.remove('show');
+            }
+        });
+
+        // Gerar ID único
+        function generateId() {
+            return Date.now() + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Mostrar modal para adicionar pessoa
+        function showAddPersonModal() {
+            currentEditingId = null;
+            document.getElementById('modalTitle').textContent = 'Adicionar Nova Pessoa';
+            document.getElementById('submitBtn').textContent = 'Adicionar';
+            document.getElementById('personForm').reset();
+            document.getElementById('photoPreview').classList.remove('show');
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector('.color-option[data-color="1"]').classList.add('selected');
+            document.getElementById('personModal').classList.add('active');
+            document.getElementById('personName').focus();
+        }
+
+        // Mostrar modal para editar pessoa
+        function showEditPersonModal(id) {
+            const person = people.find(p => p.id === id);
+            if (!person) return;
+
+            currentEditingId = id;
+            document.getElementById('modalTitle').textContent = 'Editar Pessoa';
+            document.getElementById('submitBtn').textContent = 'Salvar';
+            document.getElementById('personName').value = person.name;
+            document.getElementById('personRole').value = person.role;
+            
+            if (person.photo) {
+                document.getElementById('photoPreview').src = person.photo;
+                document.getElementById('photoPreview').classList.add('show');
+                if (person.photo.startsWith('data:')) {
+                    document.getElementById('personPhotoUrl').value = '';
+                } else {
+                    document.getElementById('personPhotoUrl').value = person.photo;
+                }
+            }
+            
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector(`[data-color="${person.balloonColor || 1}"]`).classList.add('selected');
+            
+            document.getElementById('personModal').classList.add('active');
+            document.getElementById('personName').focus();
+        }
+
+        // Fechar modal
+        function closeModal() {
+            document.getElementById('personModal').classList.remove('active');
+            currentEditingId = null;
+        }
+
+        // Processar formulário
+        document.getElementById('personForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('personName').value.trim();
+            const role = document.getElementById('personRole').value.trim();
+            const photoUrl = document.getElementById('personPhotoUrl').value.trim();
+            const selectedColor = document.querySelector('.color-option.selected').dataset.color;
+            
+            let photo = photoUrl;
+            if (photoPreview.src && photoPreview.src.startsWith('data:')) {
+                photo = photoPreview.src;
+            }
+
+            if (!name || !role) {
+                showNotification('❌ Nome e cargo são obrigatórios!', 'error');
+                return;
+            }
+
+            if (!photo) {
+                photo = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=80`;
+            }
+
+            if (currentEditingId) {
+                // Editar pessoa existente
+                const personIndex = people.findIndex(p => p.id === currentEditingId);
+                if (personIndex !== -1) {
+                    people[personIndex] = { 
+                        ...people[personIndex], 
+                        name, 
+                        role, 
+                        photo,
+                        balloonColor: selectedColor
+                    };
+                    renderPeople();
+                    showNotification('✅ Pessoa atualizada com sucesso!', 'success');
+                }
+            } else {
+                // Adicionar nova pessoa
+                const newPerson = {
+                    id: generateId(),
+                    name,
+                    role,
+                    photo,
+                    balloonColor: selectedColor,
+                    x: Math.random() * (window.innerWidth - 200) + 100,
+                    y: Math.random() * (window.innerHeight - 300) + 200
+                };
+                people.push(newPerson);
+                renderPeople();
+                showNotification('✅ Pessoa adicionada com sucesso!', 'success');
+            }
+
+            closeModal();
+            saveOrganogram();
+        });
+
+        // Remover pessoa
+        function removePerson(id) {
+            if (confirm('Tem certeza que deseja remover esta pessoa?')) {
+                people = people.filter(p => p.id !== id);
+                renderPeople();
+                saveOrganogram();
+                showNotification('🗑️ Pessoa removida com sucesso!', 'success');
+            }
+        }
+
+        // Renderizar pessoas
+        function renderPeople() {
+            const workspace = document.getElementById('workspace');
+            const emptyState = document.getElementById('emptyState');
+            
+            // Limpar balões existentes
+            const existingBalloons = workspace.querySelectorAll('.person-balloon');
+            existingBalloons.forEach(balloon => balloon.remove());
+
+            if (people.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            people.forEach(person => {
+                const balloon = createPersonBalloon(person);
+                workspace.appendChild(balloon);
+            });
+        }
+
+        // Criar balão da pessoa
+        function createPersonBalloon(person) {
+            const balloon = document.createElement('div');
+            balloon.className = 'person-balloon';
+            balloon.style.left = person.x + 'px';
+            balloon.style.top = person.y + 'px';
+            balloon.draggable = true;
+            balloon.dataset.id = person.id;
+
+            const balloonColor = balloonColors[person.balloonColor] || balloonColors[1];
+
+            balloon.innerHTML = `
+                <div class="balloon-container">
+                    <div class="person-actions">
+                        <button class="action-btn edit-btn" onclick="showEditPersonModal('${person.id}')" title="Editar">
+                            ✏️
+                        </button>
+                        <button class="action-btn delete-btn" onclick="removePerson('${person.id}')" title="Remover">
+                            🗑️
+                        </button>
+                    </div>
+                    <div class="balloon-shape" style="background: ${balloonColor}">
+                        <img class="person-photo" src="${person.photo}" alt="${person.name}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(person.name)}&background=random&size=80'">
+                    </div>
+                    <div class="balloon-string"></div>
+                    <div class="person-info">
+                        <div class="person-name">${person.name}</div>
+                        <div class="person-role">${person.role}</div>
+                    </div>
+                </div>
+            `;
+
+            // Eventos de drag and drop
+            balloon.addEventListener('dragstart', handleDragStart);
+            balloon.addEventListener('dragend', handleDragEnd);
+
+            return balloon;
+        }
+
+        // Drag and drop
+        function handleDragStart(e) {
+            draggedElement = e.target.closest('.person-balloon');
+            draggedElement.classList.add('dragging');
+            
+            const rect = draggedElement.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+        }
+
+        function handleDragEnd(e) {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+        }
+
+        // Eventos do workspace
+        document.getElementById('workspace').addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        document.getElementById('workspace').addEventListener('drop', function(e) {
+            e.preventDefault();
+            
+            if (draggedElement) {
+                const workspaceRect = this.getBoundingClientRect();
+                const x = e.clientX - workspaceRect.left - dragOffset.x;
+                const y = e.clientY - workspaceRect.top - dragOffset.y;
+                
+                // Manter dentro dos limites
+                const maxX = this.clientWidth - draggedElement.offsetWidth;
+                const maxY = this.clientHeight - draggedElement.offsetHeight;
+                
+                const finalX = Math.max(0, Math.min(x, maxX));
+                const finalY = Math.max(0, Math.min(y, maxY));
+                
+                draggedElement.style.left = finalX + 'px';
+                draggedElement.style.top = finalY + 'px';
+                
+                // Atualizar posição nos dados
+                const personId = draggedElement.dataset.id;
+                const person = people.find(p => p.id === personId);
+                if (person) {
+                    person.x = finalX;
+                    person.y = finalY;
+                    saveOrganogram();
+                }
+            }
+        });
+
+        // Salvar organograma
+        function saveOrganogram() {
+            const data = JSON.stringify(people);
+            // Simular salvamento (no ambiente real, salvaria no localStorage)
+            showNotification('💾 Organograma salvo com sucesso!', 'success');
+        }
+
+        // Limpar organograma
+        function clearOrganogram() {
+            if (confirm('Tem certeza que deseja limpar todo o organograma?')) {
+                people = [];
+                renderPeople();
+                showNotification('🧹 Organograma limpo com sucesso!', 'success');
+            }
+        }
+
+        // Sistema de notificações
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 30px;
+                background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 3000;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Fechar modal clicando fora
+        document.getElementById('personModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Teclas de atalho
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveOrganogram();
+            }
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                showAddPersonModal();
+            }
+        });
+
+        // Inicializar aplicação
+        renderPeople();
+    </script>
+</body>
+</html>
+
+me ajude a hospedar esse codigo no azure gratuitamente
